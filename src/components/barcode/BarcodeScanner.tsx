@@ -34,10 +34,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onBarcodeScanned, isSca
         Html5QrcodeSupportedFormats.CODE_128,
         Html5QrcodeSupportedFormats.CODE_39,
         Html5QrcodeSupportedFormats.ITF,
-        // Html5QrcodeSupportedFormats.QR_CODE, // Keep it barcode focused for now
       ];
 
-      // Initialize the scanner
       scannerRef.current = new Html5QrcodeScanner(
         SCANNER_ELEMENT_ID,
         {
@@ -51,48 +49,41 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onBarcodeScanned, isSca
       );
 
       const onScanSuccess = (decodedText: string, result: Html5QrcodeResult) => {
-        // Implies camera permission was granted and scan worked
         setHasCameraPermission(true); 
-        // Stop scanning after success
         if (scannerRef.current && scannerRef.current.getState() === Html5QrcodeScannerState.SCANNING) {
           scannerRef.current.stop().catch(err => console.error("Error stopping scanner:", err));
         }
-        scannerRef.current?.clear(); // Clean up the UI element
+        scannerRef.current?.clear(); 
         scannerRef.current = null;
-        setIsScanning(false); // Update state
+        setIsScanning(false); 
         onBarcodeScanned(decodedText);
         setError(null);
       };
 
       const onScanFailure: QrcodeErrorCallback = (errorMessage) => {
-        // Handle specific errors
         if (errorMessage.includes("Permission denied") || errorMessage.includes("getUserMedia") || errorMessage.includes("Requested device not found")) {
           setError("Camera permission denied or camera not found. Please allow camera access and ensure a camera is connected.");
           setHasCameraPermission(false);
           setIsScanning(false);
-          // Attempt to stop if it somehow started
           if (scannerRef.current && scannerRef.current.getState() === Html5QrcodeScannerState.SCANNING) {
              scannerRef.current.stop().catch(()=>{/*ignore*/});
           }
-          scannerRef.current?.clear(); // Clean up UI
+          scannerRef.current?.clear(); 
           scannerRef.current = null;
-        } else if (!errorMessage.toLowerCase().includes("not found")) { // Ignore 'not found' which means no barcode in view
+        } else if (!errorMessage.toLowerCase().includes("not found")) {
            console.warn(`QR Scanner Error: ${errorMessage}`);
-           // Avoid setting a persistent error for transient issues like no barcode detected
         }
-        // else: NotFoundException - ignore, common case when no barcode is in view
       };
-
-      // Render the scanner. This call itself doesn't return a promise to chain .then() on.
+      
       try {
           if(scannerRef.current) {
+            // The render method itself does not return a promise.
+            // Success/failure including permission status are handled by its callbacks.
             scannerRef.current.render(onScanSuccess, onScanFailure);
-            // At this point, the scanner UI is rendered, but camera permission might still be pending or denied.
-            // We set permission state in the callbacks.
-            setHasCameraPermission(null); // Reset to undetermined until callback confirms
+            setHasCameraPermission(null); // Set to undetermined until a callback updates it
           }
       } catch (err: any) {
-        setError(`Failed to start scanner: ${err?.message || err}`);
+        setError(`Failed to start scanner: ${err?.message || "Unknown error"}`);
         setHasCameraPermission(false);
         setIsScanning(false);
         if (scannerRef.current) {
@@ -102,26 +93,22 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onBarcodeScanned, isSca
       }
 
     } else if (!isScanning && scannerRef.current) {
-      // Cleanup when isScanning becomes false
       if (scannerRef.current.getState() === Html5QrcodeScannerState.SCANNING) {
          scannerRef.current.stop().then(() => {
             scannerRef.current?.clear();
             scannerRef.current = null;
          }).catch(err => {
             console.error("Failed to stop scanner gracefully: ", err);
-            // Force clear
             const readerElement = document.getElementById(SCANNER_ELEMENT_ID);
-            if (readerElement) readerElement.innerHTML = "";
+            if (readerElement) readerElement.innerHTML = ""; // Force clear UI
             scannerRef.current = null;
          });
       } else {
-        // If not scanning, just clear the UI element
         scannerRef.current?.clear();
         scannerRef.current = null;
       }
     }
 
-    // Cleanup function when component unmounts or dependencies change
     return () => {
       if (scannerRef.current) {
          try {
@@ -136,15 +123,13 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onBarcodeScanned, isSca
          }
       }
     };
-    // Reacting specifically to `isScanning` changes to start/stop.
-    // `onBarcodeScanned` and `setIsScanning` are stable functions, but included for correctness.
   }, [isScanning, onBarcodeScanned, setIsScanning]); 
 
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (manualBarcode.trim()) {
-      setIsScanning(false); // Ensure scanning stops if active
+      setIsScanning(false); 
       onBarcodeScanned(manualBarcode.trim());
       setManualBarcode('');
       setError(null);
@@ -152,8 +137,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onBarcodeScanned, isSca
   };
 
   const toggleScan = () => {
-    setError(null); // Clear previous errors
-    setIsScanning(!isScanning); // Toggle scanning state
+    setError(null); 
+    setIsScanning(!isScanning); 
   };
 
   return (
@@ -178,7 +163,6 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onBarcodeScanned, isSca
         </Alert>
       )}
 
-      {/* Scanner UI Container - always render the div, but content is added by library */}
       <div id={SCANNER_ELEMENT_ID} className={!isScanning ? 'hidden' : 'border-2 border-primary rounded-lg overflow-hidden min-h-[250px]'}>
           {/* The Html5QrcodeScanner library will inject UI here when render() is called */}
       </div>
@@ -186,7 +170,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onBarcodeScanned, isSca
       <Button 
         onClick={toggleScan} 
         className="w-full text-lg py-3"
-        disabled={isLoading || (isScanning && hasCameraPermission === null)} // Disable while initializing
+        disabled={isLoading || (isScanning && hasCameraPermission === null)} 
         aria-label={isScanning ? "Stop Scanning" : "Start Scanning"}
       >
         {isLoading ? (
@@ -213,7 +197,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onBarcodeScanned, isSca
           placeholder="Enter barcode manually"
           className="text-center text-base"
           aria-label="Manual barcode input"
-          disabled={isLoading || isScanning} // Also disable manual input while scanning
+          disabled={isLoading || isScanning} 
         />
         <Button type="submit" className="w-full" variant="secondary" disabled={isLoading || isScanning || !manualBarcode.trim()}>
           <Search className="mr-2 h-5 w-5" />
