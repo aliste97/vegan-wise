@@ -1,5 +1,5 @@
 import { Leaf } from 'lucide-react';
-import React from 'type-import';
+import React from 'react';
 
 const Header = () => {
   return (
