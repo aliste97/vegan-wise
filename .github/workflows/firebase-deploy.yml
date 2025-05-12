@@ -1,0 +1,46 @@
+name: Deploy to Firebase Hosting on Main Merge
+
+on:
+  push:
+    branches:
+      - master  # Or 'master', or your primary deployment branch
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4 # Or v3
+
+      # (OPTIONAL) Setup Node.js if your project needs a build step
+      - name: Setup Node.js
+        if: true # Set to false or remove if no build step needed
+        uses: actions/setup-node@v4 # Or v3
+        with:
+          node-version: '20.11.1' # Specify your project's Node.js version
+
+      # (OPTIONAL) Install dependencies and build your project
+      # Adjust these commands based on your project (npm, yarn, etc.)
+      - name: Install Dependencies
+        if: true # Set to false or remove if no build step needed
+        run: npm ci # 'npm install' or 'yarn install'
+
+      - name: Build Project
+        if: true # Set to false or remove if no build step needed
+        run: npm run build # Or 'yarn build', or your specific build command
+        # This step assumes your build output goes to the directory specified
+        # as 'public' in your firebase.json (e.g., 'dist', 'build', 'public')
+
+      # Deploy to Firebase Hosting
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0 # Use the latest version from marketplace
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}' # Automatically provided by GitHub
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' # Your service account JSON key
+          projectId: '${{ secrets.FIREBASE_PROJECT_ID }}' # Your Firebase project ID
+          channelId: live # Deploy to the 'live' channel (production)
+          # target: 'your-hosting-target-name' # Optional: if you are deploying a specific target defined in firebase.json/.firebaserc
+        # env:
+          # Optional: If your Firebase CLI needs the project ID explicitly as an env var
+          # FIREBASE_CLI_EXPERIMENTS: webframeworks # Enable if using Next.js/Nuxt.js etc. with experimental framework support
+          # GCLOUD_PROJECT: '${{ secrets.FIREBASE_PROJECT_ID }}' # Alias for projectId in some contexts
